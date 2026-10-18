@@ -27,13 +27,17 @@ enum class EventType(val label: String) {
 }
 
 @Serializable
+data class PlayerReaction(val emoji: String, val timestamp: Long)
+
+@Serializable
 data class PlayerState(
     val uid: String,
     val name: String,
     val hand: List<Tile>,
     val score: Int = 0,
     val powers: Map<Power, Int> = Power.entries.associateWith { it.initialUses },
-    val powersUsed: Int = 0
+    val powersUsed: Int = 0,
+    val reaction: PlayerReaction? = null
 )
 
 @Serializable

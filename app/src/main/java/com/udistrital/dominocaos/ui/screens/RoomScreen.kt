@@ -1,15 +1,21 @@
 package com.udistrital.dominocaos.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -53,17 +59,54 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
     val myTurn = playing && s.current.uid == vm.myUid
     val swapMode = myTurn && vm.selectedPower == Power.SWAP && vm.selectedTile != null
 
-    Text(
-        "Sala ${room.code} · Ronda ${s.round}/${s.maxRounds} · Sentido ${if (s.direction == 1) "➡" else "⬅"} · Pozo ${s.pool.size}",
-        fontWeight = FontWeight.Bold
-    )
+    var showHelp by remember { mutableStateOf(false) }
+
+    // 1. Instanciamos el Vibrator nativo de Android
+    val context = LocalContext.current
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
+
+    // Función auxiliar para emitir la vibración
+    val vibrate = { durationMillis: Long ->
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(durationMillis, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(durationMillis)
+        }
+    }
+
+    // 2. Efecto para vibrar fuerte (200ms) cuando empieza tu turno
+    LaunchedEffect(myTurn) {
+        if (myTurn) vibrate(200L)
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "Sala ${room.code} · Ronda ${s.round}/${s.maxRounds}\nSentido ${if (s.direction == 1) "➡" else "⬅"} · Pozo ${s.pool.size}",
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f)
+        )
+        IconButton(onClick = { showHelp = true }) {
+            Icon(Icons.Default.Info, contentDescription = "Ver reglas y poderes")
+        }
+    }
+
     s.activeEvent?.let { Text("⚡ Evento activo: ${it.label} (${s.eventTurns})", color = Color(0xFF6A1B9A)) }
 
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(s.players) { p ->
             PlayerCard(
                 p, isTurn = playing && p.uid == s.current.uid, isMe = p.uid == vm.myUid,
-                onClick = if (swapMode && p.uid != vm.myUid) ({ vm.swapWith(p.uid) }) else null
+                onClick = if (swapMode && p.uid != vm.myUid) {
+                    {
+                        vibrate(100L) // Vibración media al intercambiar ficha
+                        vm.swapWith(p.uid)
+                    }
+                } else null
             )
         }
     }
@@ -83,19 +126,61 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
 
     if (me != null && playing) {
         val noMove = !GameEngine.hasMove(s, me)
-        PowerBar(me, vm.selectedPower, enabled = myTurn && !s.powersFrozen) { vm.selectPower(it) }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(vertical = 4.dp)
+        ) {
+            listOf("😂", "😡", "👏", "🔥", "🤔", "⚡").forEach { emoji ->
+                Text(
+                    text = emoji,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.clickable {
+                        vibrate(30L) // Vibración suave al enviar emoji
+                        vm.sendReaction(emoji)
+                    }
+                )
+            }
+        }
+
+        PowerBar(me, vm.selectedPower, enabled = myTurn && !s.powersFrozen) {
+            vibrate(30L) // Vibración suave al seleccionar poder
+            vm.selectPower(it)
+        }
+
         ControlsBar(
             sides = if (myTurn) vm.validSides(s) else emptyList(),
             canDraw = myTurn && noMove && s.pool.isNotEmpty(),
             canPass = myTurn && noMove && s.pool.isEmpty(),
             poolSize = s.pool.size,
-            onSide = vm::place, onDraw = vm::draw, onPass = vm::pass
+            onSide = { side ->
+                vibrate(100L) // Vibración media al colocar ficha en el tablero
+                vm.place(side)
+            },
+            onDraw = {
+                vibrate(30L) // Vibración suave al robar
+                vm.draw()
+            },
+            onPass = {
+                vibrate(30L) // Vibración suave al pasar
+                vm.pass()
+            }
         )
-        HandView(me.hand, vm.selectedTile, enabled = myTurn, onSelect = vm::selectTile)
+
+        HandView(me.hand, vm.selectedTile, enabled = myTurn, onSelect = { tile ->
+            vibrate(30L) // Vibración suave al tocar ficha de la mano
+            vm.selectTile(tile)
+        })
+
         OutlinedButton({ vm.leave(onExit) }) { Text("Abandonar partida") }
     }
+
     if (!playing) {
         if (vm.myUid == room.hostUid) Button({ vm.start() }) { Text("Reiniciar partida") }
         OutlinedButton({ vm.leave(onExit) }) { Text("Salir") }
+    }
+
+    if (showHelp) {
+        HelpDialog(onDismiss = { showHelp = false })
     }
 }
