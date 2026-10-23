@@ -29,28 +29,39 @@ private fun pipPositions(n: Int): List<Pair<Float, Float>> {
 }
 
 @Composable
-private fun Half(value: Int, cell: Dp) {
+private fun Half(value: Int, cell: Dp, dotColor: Color) {
     Canvas(Modifier.size(cell)) {
         pipPositions(value).forEach { (x, y) ->
-            drawCircle(Color.Black, radius = size.minDimension * 0.09f, center = Offset(x * size.width, y * size.height))
+            drawCircle(
+                color = dotColor,
+                radius = size.minDimension * 0.12f, // Puntos ligeramente más grandes
+                center = Offset(x * size.width, y * size.height)
+            )
         }
     }
 }
 
-/** Ficha de dominó reutilizable (tablero y mano). */
 @Composable
 fun DominoTile(
-    tile: Tile, modifier: Modifier = Modifier, cell: Dp = 36.dp,
+    tile: Tile, modifier: Modifier = Modifier, cell: Dp = 40.dp,
     selected: Boolean = false, onClick: (() -> Unit)? = null
 ) {
-    val shape = RoundedCornerShape(6.dp)
+    val shape = RoundedCornerShape(8.dp)
+
+    // Fichas en modo oscuro
+    val tileColor = Color(0xFF1E1E2E)
+    val dotColor = Color(0xFF00E5FF) // Puntos Cyan brillante
+    val borderColor = if (selected) Color(0xFFE040FB) else Color.White.copy(alpha = 0.2f)
+
     Row(
-        modifier.clip(shape).background(Color(0xFFFFF8E1))
-            .border(if (selected) 3.dp else 1.dp, if (selected) Color(0xFF1E88E5) else Color.DarkGray, shape)
+        modifier = modifier
+            .clip(shape)
+            .background(tileColor)
+            .border(if (selected) 3.dp else 1.dp, borderColor, shape)
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
     ) {
-        Half(tile.a, cell)
-        Box(Modifier.width(1.dp).height(cell).background(Color.DarkGray))
-        Half(tile.b, cell)
+        Half(tile.a, cell, dotColor)
+        Box(Modifier.width(1.dp).height(cell).background(Color.White.copy(alpha = 0.2f))) // Línea divisoria
+        Half(tile.b, cell, dotColor)
     }
 }
