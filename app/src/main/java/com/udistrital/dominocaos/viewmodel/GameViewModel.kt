@@ -6,7 +6,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.udistrital.dominocaos.data.AuthRepository
-import com.udistrital.dominocaos.data.Room
 import com.udistrital.dominocaos.data.RoomRepository
 import com.udistrital.dominocaos.domain.*
 import kotlinx.coroutines.flow.SharingStarted
@@ -44,6 +43,9 @@ class GameViewModel(
     fun swapWith(uid: String) = act { GameEngine.play(it, myUid, Move(selectedTile, null, Power.SWAP, uid)) }
     fun draw() = act { GameEngine.draw(it, myUid) }
     fun pass() = act { GameEngine.pass(it, myUid) }
+
+    // NUEVA FUNCIÓN: Envía la reacción a Firestore
+    fun sendReaction(emoji: String) = act { GameEngine.react(it, myUid, emoji) }
 
     fun start() = launchSafe { rooms.start(code, myUid) }      // iniciar o reiniciar
     fun leave(onDone: () -> Unit) = launchSafe { rooms.leave(code, myUid); onDone() }

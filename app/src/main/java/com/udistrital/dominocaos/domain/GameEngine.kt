@@ -99,6 +99,18 @@ object GameEngine {
         return s.copy(status = Status.FINISHED, winnerUid = winner?.uid, log = "$name abandonó la partida")
     }
 
+    // ---------- Reacciones ----------
+    fun react(s: GameState, uid: String, emoji: String): Result<GameState> = runCatching {
+        require(s.status == Status.PLAYING) { "La partida no está activa" }
+        val idx = s.players.indexOfFirst { it.uid == uid }
+        require(idx >= 0) { "Jugador no encontrado" }
+
+        val p = s.players[idx]
+        val newReaction = PlayerReaction(emoji, System.currentTimeMillis())
+
+        s.copy(players = s.players.replace(idx, p.copy(reaction = newReaction)))
+    }
+
     // ---------- Fin de partida ----------
     fun finish(s: GameState, reason: String): GameState {
         val sorted = s.players.sortedWith(compareByDescending<PlayerState> { it.score }.thenBy { it.powersUsed })
@@ -110,7 +122,7 @@ object GameEngine {
     fun applyEvent(s: GameState, e: EventType): GameState {
         val n = s.players.size
         val next = ((s.currentIdx + s.direction) % n + n) % n
-        val base = s.copy(log = s.log + " · ⚡ ${e.label}")
+        val base = s.copy(log = s.log + " · \u26A1 ${e.label}")
         return when (e) {
             EventType.DOUBLE_POINTS, EventType.POWERS_FROZEN -> base.copy(activeEvent = e, eventTurns = 3)
             EventType.REVERSE_DIRECTION -> base.copy(direction = -s.direction)
