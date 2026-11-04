@@ -19,12 +19,16 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.udistrital.dominocaos.viewmodel.LobbyViewModel
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @Composable
 fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewModel = viewModel()) {
     var code by remember { mutableStateOf("") }
     var rounds by remember { mutableFloatStateOf(10f) }
 
     val userStats by vm.stats.collectAsState()
+    val scrollState = rememberScrollState()
 
     val background = Brush.verticalGradient(
         colors = listOf(
@@ -48,13 +52,14 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
         modifier = Modifier
             .fillMaxSize()
             .background(background)
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text(
                 text = "SALAS DE JUEGO",
@@ -177,7 +182,7 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
                 Text(text = it, color = Color(0xFFFF5252), textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Botón de salir al fondo
             TextButton(onClick = onSignOut, enabled = !vm.loading) {

@@ -7,6 +7,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.tasks.await
 
 data class UserStats(
@@ -30,24 +31,27 @@ class AuthRepository(
 
     fun current(): LobbyPlayer? = auth.currentUser?.toPlayer()
 
-    fun observeStats(uid: String): Flow<UserStats?> = callbackFlow {
-        if (uid.isBlank()) { trySend(null); close(); return@callbackFlow }
-        val reg = db.collection("users").document(uid).addSnapshotListener { snap, err ->
-            if (err != null) close(err)
-            else {
-                val stats = snap?.takeIf { it.exists() }?.let {
-                    UserStats(
-                        uid = it.id,
-                        name = it.getString("name").orEmpty(),
-                        gamesPlayed = (it.getLong("gamesPlayed") ?: 0L).toInt(),
-                        gamesWon = (it.getLong("gamesWon") ?: 0L).toInt(),
-                        totalScore = (it.getLong("totalScore") ?: 0L).toInt()
-                    )
+    fun observeStats(uid: String): Flow<UserStats?> {
+        if (uid.isBlank()) return flowOf(null)
+        return callbackFlow {
+            val reg = db.collection("users").document(uid).addSnapshotListener { snap, err ->
+                if (err != null) {
+                    trySend(null)
+                } else {
+                    val stats = snap?.takeIf { it.exists() }?.let {
+                        UserStats(
+                            uid = it.id,
+                            name = it.getString("name").orEmpty(),
+                            gamesPlayed = (it.getLong("gamesPlayed") ?: 0L).toInt(),
+                            gamesWon = (it.getLong("gamesWon") ?: 0L).toInt(),
+                            totalScore = (it.getLong("totalScore") ?: 0L).toInt()
+                        )
+                    }
+                    trySend(stats)
                 }
-                trySend(stats)
             }
+            awaitClose { reg.remove() }
         }
-        awaitClose { reg.remove() }
     }
 
     suspend fun signIn(email: String, pass: String) {

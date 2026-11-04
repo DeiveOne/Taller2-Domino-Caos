@@ -193,16 +193,20 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
 
     var showHelp by remember { mutableStateOf(false) }
 
-    // Instanciamos el Vibrator nativo de Android
+    // Instanciamos el Vibrator nativo de Android de forma segura
     val context = LocalContext.current
-    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
+    val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
 
     val vibrate = { durationMillis: Long ->
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(durationMillis, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(durationMillis)
+        vibrator?.let { v ->
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    v.vibrate(VibrationEffect.createOneShot(durationMillis, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    v.vibrate(durationMillis)
+                }
+            } catch (_: Exception) {}
         }
     }
 

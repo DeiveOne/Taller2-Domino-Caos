@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.udistrital.dominocaos.ui.screens.AuthScreen
 import com.udistrital.dominocaos.ui.screens.LobbyScreen
@@ -30,6 +31,8 @@ fun AppNav() {
     val nav = rememberNavController()
     val authVm: AuthViewModel = viewModel()
     val user by authVm.user.collectAsState()
+    val navBackStackEntry by nav.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
     NavHost(nav, startDestination = if (user == null) "auth" else "lobby") {
         composable("auth") { AuthScreen(authVm) }
@@ -40,6 +43,13 @@ fun AppNav() {
     }
     // Redirige cuando cambia la sesión (login / logout)
     LaunchedEffect(user?.uid) {
-        nav.navigate(if (user == null) "auth" else "lobby") { popUpTo(0); launchSingleTop = true }
+        val target = if (user == null) "auth" else "lobby"
+        if (currentRoute != null && currentRoute != target && (currentRoute == "auth" || currentRoute == "lobby")) {
+            nav.navigate(target) {
+                popUpTo("auth") { inclusive = true }
+                popUpTo("lobby") { inclusive = true }
+                launchSingleTop = true
+            }
+        }
     }
 }

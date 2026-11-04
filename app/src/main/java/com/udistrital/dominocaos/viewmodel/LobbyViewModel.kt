@@ -1,5 +1,7 @@
 package com.udistrital.dominocaos.viewmodel
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,15 +11,21 @@ import com.udistrital.dominocaos.data.AuthRepository
 import com.udistrital.dominocaos.data.RoomRepository
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class LobbyViewModel(
     private val auth: AuthRepository = AuthRepository(),
     private val rooms: RoomRepository = RoomRepository()
 ) : ViewModel() {
-    val currentUser = auth.current()
-    val stats = auth.observeStats(currentUser?.uid.orEmpty())
+    val currentUser get() = auth.current()
+    val stats = auth.user
+        .flatMapLatest { user -> if (user == null) flowOf(null) else auth.observeStats(user.uid) }
+        .catch { emit(null) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     var loading by mutableStateOf(false); private set
