@@ -2,6 +2,7 @@ package com.udistrital.dominocaos.data
 
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.udistrital.dominocaos.domain.GameEngine
 import com.udistrital.dominocaos.domain.GameState
 import com.udistrital.dominocaos.domain.Status
@@ -52,9 +53,39 @@ class RoomRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIn
         mapOf("status" to g.status.name, "state" to GameJson.encode(g))
     }
 
+    /** Revancha rápida al finalizar la partida. */
+    suspend fun rematch(code: String, uid: String) = start(code, uid)
+
     suspend fun mutate(code: String, f: (GameState) -> Result<GameState>) = transact(code) { room ->
         val g = f(checkNotNull(room.state) { "La partida no ha iniciado" }).getOrThrow()
+        if (g.status == Status.FINISHED && room.state.status != Status.FINISHED) {
+            updateStats(g)
+        }
         mapOf("status" to g.status.name, "state" to GameJson.encode(g))
+    }
+
+    private fun updateStats(g: GameState) {
+        g.players.forEach { p ->
+            val ref = db.collection("users").document(p.uid)
+            db.runTransaction { tx ->
+                val snap = tx.get(ref)
+                val currentPlayed = snap.getLong("gamesPlayed") ?: 0L
+                val currentWon = snap.getLong("gamesWon") ?: 0L
+                val currentScore = snap.getLong("totalScore") ?: 0L
+                val isWinner = p.uid == g.winnerUid
+                tx.set(
+                    ref,
+                    mapOf(
+                        "name" to p.name,
+                        "gamesPlayed" to currentPlayed + 1,
+                        "gamesWon" to currentWon + (if (isWinner) 1 else 0),
+                        "totalScore" to currentScore + p.score
+                    ),
+                    SetOptions.merge()
+                )
+                null
+            }
+        }
     }
 
     suspend fun leave(code: String, uid: String) = transact(code) { room ->

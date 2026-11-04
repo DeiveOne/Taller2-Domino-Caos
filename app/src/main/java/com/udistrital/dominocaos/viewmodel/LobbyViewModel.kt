@@ -8,12 +8,18 @@ import androidx.lifecycle.viewModelScope
 import com.udistrital.dominocaos.data.AuthRepository
 import com.udistrital.dominocaos.data.RoomRepository
 import com.google.firebase.firestore.FirebaseFirestoreException
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class LobbyViewModel(
     private val auth: AuthRepository = AuthRepository(),
     private val rooms: RoomRepository = RoomRepository()
 ) : ViewModel() {
+    val currentUser = auth.current()
+    val stats = auth.observeStats(currentUser?.uid.orEmpty())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     var loading by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
 

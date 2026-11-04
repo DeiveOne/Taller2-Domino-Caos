@@ -245,11 +245,11 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
     Text(
         text = when {
             !playing -> s.winnerUid?.let { id -> "🏆 Ganó ${s.players.first { it.uid == id }.name}" } ?: "🤝 Empate"
-            myTurn -> "Tu turno"
-            else -> "Turno de ${s.current.name}"
+            myTurn -> "Tu turno (${vm.timerSeconds}s)"
+            else -> "Turno de ${s.current.name} (${vm.timerSeconds}s)"
         },
         style = MaterialTheme.typography.titleMedium,
-        color = Color(0xFF00E5FF),
+        color = if (myTurn && vm.timerSeconds <= 5) Color(0xFFFF5252) else Color(0xFF00E5FF),
         fontWeight = FontWeight.Bold
     )
 
@@ -317,15 +317,15 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
     if (!playing) {
         if (vm.myUid == room.hostUid) {
             Button(
-                onClick = { vm.start() },
+                onClick = { vm.rematch() },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE040FB))
-            ) { Text("Reiniciar partida") }
+            ) { Text("🔄 Revancha (Iniciar nueva partida)") }
         }
         OutlinedButton(
             onClick = { vm.leave(onExit) },
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
             border = null
-        ) { Text("Salir", color = Color.White) }
+        ) { Text("Salir de la sala", color = Color.White) }
     }
 
     if (showHelp) {

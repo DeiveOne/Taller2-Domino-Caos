@@ -24,6 +24,8 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
     var code by remember { mutableStateOf("") }
     var rounds by remember { mutableFloatStateOf(10f) }
 
+    val userStats by vm.stats.collectAsState()
+
     val background = Brush.verticalGradient(
         colors = listOf(
             Color(0xFF120320),
@@ -61,6 +63,23 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp
             )
+
+            userStats?.let { s ->
+                Surface(
+                    color = Color.White.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("👤 ${s.name.ifBlank { vm.currentUser?.name.orEmpty() }}", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("🏆 ${s.gamesWon}/${s.gamesPlayed}", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
+                        Text("⭐ ${s.totalScore} pts", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
 
             // TARJETA 1: CREAR SALA
             Card(
