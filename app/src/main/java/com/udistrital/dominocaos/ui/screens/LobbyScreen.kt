@@ -21,11 +21,15 @@ import com.udistrital.dominocaos.viewmodel.LobbyViewModel
 
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.Settings
+import com.udistrital.dominocaos.ui.components.SettingsDialog
+import com.udistrital.dominocaos.ui.i18n.AppStrings
 
 @Composable
 fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewModel = viewModel()) {
     var code by remember { mutableStateOf("") }
     var rounds by remember { mutableFloatStateOf(10f) }
+    var showSettings by remember { mutableStateOf(false) }
 
     val userStats by vm.stats.collectAsState()
     val scrollState = rememberScrollState()
@@ -41,7 +45,7 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Color.White,
         unfocusedTextColor = Color.White,
-        focusedBorderColor = Color(0xFF00E5FF), // Acento Cyan para unirse
+        focusedBorderColor = Color(0xFF00E5FF),
         unfocusedBorderColor = Color.White.copy(alpha = 0.4f),
         focusedLabelColor = Color(0xFF00E5FF),
         unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
@@ -61,13 +65,22 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Text(
-                text = "SALAS DE JUEGO",
-                color = Color.White,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.sp
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = AppStrings.gameRooms,
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 1.sp
+                )
+                IconButton(onClick = { showSettings = true }) {
+                    Icon(Icons.Default.Settings, contentDescription = AppStrings.settings, tint = Color.White)
+                }
+            }
 
             userStats?.let { s ->
                 Surface(
@@ -81,7 +94,7 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
                     ) {
                         Text("👤 ${s.name.ifBlank { vm.currentUser?.name.orEmpty() }}", color = Color.White, fontWeight = FontWeight.Bold)
                         Text("🏆 ${s.gamesWon}/${s.gamesPlayed}", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
-                        Text("⭐ ${s.totalScore} pts", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
+                        Text("⭐ ${s.totalScore} ${AppStrings.points}", color = Color(0xFF00E5FF), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -96,10 +109,10 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
                     modifier = Modifier.padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("NUEVA PARTIDA", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.newMatch, color = Color.White, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Text("Rondas máximas: ${rounds.toInt()}", color = Color.White.copy(alpha = 0.8f))
+                    Text("${AppStrings.maxRounds}: ${rounds.toInt()}", color = Color.White.copy(alpha = 0.8f))
                     Slider(
                         value = rounds,
                         onValueChange = { rounds = it },
@@ -122,7 +135,7 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("CREAR SALA", fontWeight = FontWeight.Bold)
+                        Text(AppStrings.createRoom, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -144,13 +157,13 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
                     modifier = Modifier.padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("UNIRSE A PARTIDA", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.joinMatch, color = Color.White, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
 
                     OutlinedTextField(
                         value = code,
                         onValueChange = { code = it.uppercase().take(5) },
-                        label = { Text("Código de sala (5 letras)") },
+                        label = { Text(AppStrings.roomCodeHint) },
                         singleLine = true,
                         enabled = !vm.loading,
                         colors = textFieldColors,
@@ -164,15 +177,14 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
                         enabled = code.length == 5 && !vm.loading,
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF00E5FF), // Cyan para diferenciar
-                            contentColor = Color.Black // Texto negro sobre cyan resalta bien
+                            containerColor = Color(0xFF00E5FF),
+                            contentColor = Color.Black
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        // Ícono cambiado a ArrowForward
                         Icon(Icons.Default.ArrowForward, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("ENTRAR", fontWeight = FontWeight.Bold)
+                        Text(AppStrings.enter, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -186,8 +198,12 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
 
             // Botón de salir al fondo
             TextButton(onClick = onSignOut, enabled = !vm.loading) {
-                Text("Cerrar sesión", color = Color.White.copy(alpha = 0.6f))
+                Text(AppStrings.signOut, color = Color.White.copy(alpha = 0.6f))
             }
+        }
+
+        if (showSettings) {
+            SettingsDialog(onDismiss = { showSettings = false })
         }
     }
 }

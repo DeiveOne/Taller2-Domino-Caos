@@ -21,12 +21,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.udistrital.dominocaos.viewmodel.AuthViewModel
 
+import androidx.compose.material.icons.filled.Settings
+import com.udistrital.dominocaos.ui.components.SettingsDialog
+import com.udistrital.dominocaos.ui.i18n.AppStrings
+
 @Composable
 fun AuthScreen(vm: AuthViewModel) {
     var register by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
+    var showSettings by remember { mutableStateOf(false) }
 
     // Degradado de morado oscuro a morado vibrante
     val background = Brush.verticalGradient(
@@ -52,15 +57,22 @@ fun AuthScreen(vm: AuthViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(background)
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
+            .padding(24.dp)
     ) {
+        // Botón de Ajustes en la esquina superior derecha
+        IconButton(
+            onClick = { showSettings = true },
+            modifier = Modifier.align(Alignment.TopEnd)
+        ) {
+            Icon(Icons.Default.Settings, contentDescription = AppStrings.settings, tint = Color.White)
+        }
+
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Título principal e Ícono cambiado a Star
+            // Título principal e Ícono
             Icon(
                 imageVector = Icons.Default.Star,
                 contentDescription = null,
@@ -69,14 +81,14 @@ fun AuthScreen(vm: AuthViewModel) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "DOMINÓ CAOS",
+                text = AppStrings.appTitle.uppercase(),
                 color = Color.White,
                 fontSize = 36.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 2.sp
             )
             Text(
-                text = if (register) "Crea tu cuenta para jugar" else "Bienvenido de vuelta",
+                text = if (register) AppStrings.signUp else AppStrings.signIn,
                 color = Color.White.copy(alpha = 0.8f),
                 fontSize = 16.sp
             )
@@ -102,7 +114,7 @@ fun AuthScreen(vm: AuthViewModel) {
                     if (register) {
                         OutlinedTextField(
                             value = name, onValueChange = { name = it },
-                            label = { Text("Nombre de usuario") },
+                            label = { Text(AppStrings.name) },
                             singleLine = true,
                             colors = textFieldColors,
                             modifier = Modifier.fillMaxWidth()
@@ -111,7 +123,7 @@ fun AuthScreen(vm: AuthViewModel) {
 
                     OutlinedTextField(
                         value = email, onValueChange = { email = it },
-                        label = { Text("Correo electrónico") },
+                        label = { Text(AppStrings.email) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         colors = textFieldColors,
@@ -120,7 +132,7 @@ fun AuthScreen(vm: AuthViewModel) {
 
                     OutlinedTextField(
                         value = pass, onValueChange = { pass = it },
-                        label = { Text("Contraseña") },
+                        label = { Text(AppStrings.password) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         colors = textFieldColors,
@@ -143,7 +155,7 @@ fun AuthScreen(vm: AuthViewModel) {
                             .shadow(8.dp, RoundedCornerShape(16.dp)),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFE040FB), // Acento magenta/morado claro
+                            containerColor = Color(0xFFE040FB),
                             disabledContainerColor = Color(0xFFE040FB).copy(alpha = 0.5f)
                         )
                     ) {
@@ -151,7 +163,7 @@ fun AuthScreen(vm: AuthViewModel) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
                         } else {
                             Text(
-                                text = if (register) "CREAR CUENTA" else "JUGAR",
+                                text = if (register) AppStrings.signUp.uppercase() else AppStrings.signIn.uppercase(),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -166,11 +178,15 @@ fun AuthScreen(vm: AuthViewModel) {
             // Botón de texto para alternar modo
             TextButton(onClick = { register = !register }) {
                 Text(
-                    text = if (register) "¿Ya tienes cuenta? Inicia sesión" else "¿No tienes cuenta? Regístrate",
+                    text = if (register) AppStrings.hasAccount else AppStrings.noAccount,
                     color = Color.White.copy(alpha = 0.9f),
                     fontWeight = FontWeight.SemiBold
                 )
             }
+        }
+
+        if (showSettings) {
+            SettingsDialog(onDismiss = { showSettings = false })
         }
     }
 }

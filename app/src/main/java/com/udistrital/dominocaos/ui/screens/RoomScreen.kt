@@ -33,6 +33,10 @@ import com.udistrital.dominocaos.domain.*
 import com.udistrital.dominocaos.ui.components.*
 import com.udistrital.dominocaos.viewmodel.GameViewModel
 
+import androidx.compose.material.icons.filled.Settings
+import com.udistrital.dominocaos.ui.components.SettingsDialog
+import com.udistrital.dominocaos.ui.i18n.AppStrings
+
 @Composable
 fun RoomScreen(code: String, onExit: () -> Unit) {
     val vm: GameViewModel = viewModel(key = code, factory = viewModelFactory { initializer { GameViewModel(code) } })
@@ -76,19 +80,30 @@ fun RoomScreen(code: String, onExit: () -> Unit) {
 
 @Composable
 private fun WaitingView(r: Room, vm: GameViewModel, onExit: () -> Unit) {
+    var showSettings by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "SALA DE ESPERA",
-            color = Color.White,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 2.sp
-        )
-        Spacer(modifier = Modifier.height(24.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = AppStrings.waitingRoom,
+                color = Color.White,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 2.sp
+            )
+            IconButton(onClick = { showSettings = true }) {
+                Icon(Icons.Default.Settings, contentDescription = AppStrings.settings, tint = Color.White)
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Tarjeta grande para el código de la sala
         Card(
@@ -100,24 +115,24 @@ private fun WaitingView(r: Room, vm: GameViewModel, onExit: () -> Unit) {
                 modifier = Modifier.padding(24.dp).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("CÓDIGO DE INVITACIÓN", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                Text(AppStrings.inviteCode, color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
                 Text(
                     text = r.code,
-                    color = Color(0xFF00E5FF), // Cyan vibrante
+                    color = Color(0xFF00E5FF),
                     fontSize = 56.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 8.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Partida a ${r.maxRounds} rondas", color = Color.White.copy(alpha = 0.8f))
+                Text(AppStrings.roundsCount(r.maxRounds), color = Color.White.copy(alpha = 0.8f))
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Lista de Jugadores
         Text(
-            text = "JUGADORES (${r.lobby.size}/4)",
+            text = AppStrings.playersCount(r.lobby.size),
             color = Color.White,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.Start)
@@ -144,7 +159,7 @@ private fun WaitingView(r: Room, vm: GameViewModel, onExit: () -> Unit) {
                         modifier = Modifier.weight(1f)
                     )
                     if (player.uid == r.hostUid) {
-                        Icon(Icons.Default.Star, contentDescription = "Anfitrión", tint = Color(0xFFFFD54F))
+                        Icon(Icons.Default.Star, contentDescription = AppStrings.host, tint = Color(0xFFFFD54F))
                     }
                 }
             }
@@ -167,19 +182,19 @@ private fun WaitingView(r: Room, vm: GameViewModel, onExit: () -> Unit) {
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Text("INICIAR PARTIDA", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            }
-            if (r.lobby.size < 2) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Esperando a que se unan más jugadores...", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                Text(AppStrings.startGame, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         } else {
-            Text("Esperando a que el anfitrión inicie la partida...", color = Color(0xFF00E5FF), fontStyle = FontStyle.Italic)
+            Text(AppStrings.waitingForHost, color = Color(0xFF00E5FF), fontStyle = FontStyle.Italic)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
         TextButton(onClick = { vm.leave(onExit) }) {
-            Text("SALIR DE LA SALA", color = Color.White.copy(alpha = 0.5f))
+            Text(AppStrings.leaveRoom, color = Color.White.copy(alpha = 0.5f))
+        }
+
+        if (showSettings) {
+            SettingsDialog(onDismiss = { showSettings = false })
         }
     }
 }
@@ -192,6 +207,7 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
     val swapMode = myTurn && vm.selectedPower == Power.SWAP && vm.selectedTile != null
 
     var showHelp by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
 
     // Instanciamos el Vibrator nativo de Android de forma segura
     val context = LocalContext.current
@@ -225,12 +241,17 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
             color = Color.White,
             modifier = Modifier.weight(1f)
         )
-        IconButton(onClick = { showHelp = true }) {
-            Icon(Icons.Default.Info, contentDescription = "Ver reglas", tint = Color.White)
+        Row {
+            IconButton(onClick = { showHelp = true }) {
+                Icon(Icons.Default.Info, contentDescription = "Ver reglas", tint = Color.White)
+            }
+            IconButton(onClick = { showSettings = true }) {
+                Icon(Icons.Default.Settings, contentDescription = AppStrings.settings, tint = Color.White)
+            }
         }
     }
 
-    s.activeEvent?.let { Text("⚡ Evento activo: ${it.label} (${s.eventTurns})", color = Color(0xFFE040FB), fontWeight = FontWeight.Bold) }
+    s.activeEvent?.let { Text(AppStrings.activeEvent(it.label, s.eventTurns), color = Color(0xFFE040FB), fontWeight = FontWeight.Bold) }
 
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(s.players) { p ->
@@ -248,9 +269,9 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
 
     Text(
         text = when {
-            !playing -> s.winnerUid?.let { id -> "🏆 Ganó ${s.players.first { it.uid == id }.name}" } ?: "🤝 Empate"
-            myTurn -> "Tu turno (${vm.timerSeconds}s)"
-            else -> "Turno de ${s.current.name} (${vm.timerSeconds}s)"
+            !playing -> s.winnerUid?.let { id -> AppStrings.wonGame(s.players.first { it.uid == id }.name) } ?: AppStrings.tieGame
+            myTurn -> AppStrings.yourTurn(vm.timerSeconds)
+            else -> AppStrings.turnOf(s.current.name, vm.timerSeconds)
         },
         style = MaterialTheme.typography.titleMedium,
         color = if (myTurn && vm.timerSeconds <= 5) Color(0xFFFF5252) else Color(0xFF00E5FF),
@@ -315,7 +336,7 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
             onClick = { vm.leave(onExit) },
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
             border = null
-        ) { Text("Abandonar partida", color = Color.White.copy(alpha = 0.7f)) }
+        ) { Text(AppStrings.leaveGame, color = Color.White.copy(alpha = 0.7f)) }
     }
 
     if (!playing) {
@@ -323,16 +344,20 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
             Button(
                 onClick = { vm.rematch() },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE040FB))
-            ) { Text("🔄 Revancha (Iniciar nueva partida)") }
+            ) { Text(AppStrings.rematch) }
         }
         OutlinedButton(
             onClick = { vm.leave(onExit) },
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
             border = null
-        ) { Text("Salir de la sala", color = Color.White) }
+        ) { Text(AppStrings.leaveRoom, color = Color.White) }
     }
 
     if (showHelp) {
         HelpDialog(onDismiss = { showHelp = false })
+    }
+
+    if (showSettings) {
+        SettingsDialog(onDismiss = { showSettings = false })
     }
 }
