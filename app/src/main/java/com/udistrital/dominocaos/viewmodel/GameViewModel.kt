@@ -31,11 +31,26 @@ class GameViewModel(
 
     private var timerJob: Job? = null
     private var lastTurnKey: String = ""
+    private var statsUpdatedForGameKey: String = ""
 
     val room = rooms.observe(code)
-        .onEach { r -> updateTimerForRoom(r?.state) }
+        .onEach { r ->
+            updateTimerForRoom(r?.state)
+            checkAndUpdateStats(r?.state)
+        }
         .catch { message = it.localizedMessage }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private fun checkAndUpdateStats(s: GameState?) {
+        if (s == null || s.status != Status.FINISHED) return
+        val gameKey = "${code}_${s.turnCount}_${s.winnerUid}"
+        if (gameKey != statsUpdatedForGameKey) {
+            statsUpdatedForGameKey = gameKey
+            viewModelScope.launch {
+                runCatching { rooms.updateMyStats(myUid, s) }
+            }
+        }
+    }
 
     private fun updateTimerForRoom(s: GameState?) {
         if (s == null || s.status != Status.PLAYING) {
