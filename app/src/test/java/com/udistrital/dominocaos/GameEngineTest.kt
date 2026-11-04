@@ -43,7 +43,7 @@ class GameEngineTest {
     @Test fun comodinPermiteMovimientoYConsumeUso() {
         val g = game(listOf(t(0, 0), t(1, 1)), listOf(t(3, 3)), board = listOf(t(3, 4)))
         val r = GameEngine.play(g, "p0", Move(t(0, 0), Side.RIGHT, Power.WILDCARD)).getOrThrow()
-        assertEquals(1, r.players[0].powers[Power.WILDCARD])
+        assertEquals(0, r.players[0].powers[Power.WILDCARD])
         assertEquals(1, r.players[0].powersUsed)
     }
 
@@ -53,22 +53,9 @@ class GameEngineTest {
         assertTrue(GameEngine.play(g, "p0", Move(t(0, 0), Side.RIGHT, Power.WILDCARD)).isFailure)
     }
 
-    @Test fun saltoHaceQueElSiguienteJugadorPierdaElTurno() {
-        val g = game(listOf(t(4, 5), t(0, 0)), listOf(t(1, 1)), listOf(t(5, 6)), board = listOf(t(3, 4)))
-        val r = GameEngine.play(g, "p0", Move(t(4, 5), Side.RIGHT, Power.SKIP)).getOrThrow()
-        assertEquals(2, r.currentIdx)
-    }
-
-    @Test fun inversionCambiaElSentido() {
-        val g = game(listOf(t(4, 5), t(0, 0)), listOf(t(1, 1)), listOf(t(5, 6)), board = listOf(t(3, 4)))
-        val r = GameEngine.play(g, "p0", Move(t(4, 5), Side.RIGHT, Power.REVERSE)).getOrThrow()
-        assertEquals(-1, r.direction)
-        assertEquals(2, r.currentIdx)
-    }
-
     @Test fun intercambioMueveFichasEntreJugadores() {
         val g = game(listOf(t(1, 2), t(3, 3)), listOf(t(5, 5)))
-        val r = GameEngine.play(g, "p0", Move(t(1, 2), null, Power.SWAP, "p1")).getOrThrow()
+        val r = GameEngine.play(g, "p0", Move(t(1, 2), null, Power.SWAP, "p1", t(5, 5))).getOrThrow()
         assertTrue(t(5, 5) in r.players[0].hand && t(1, 2) !in r.players[0].hand)
         assertTrue(t(1, 2) in r.players[1].hand)
         assertEquals(0, r.players[0].powers[Power.SWAP])

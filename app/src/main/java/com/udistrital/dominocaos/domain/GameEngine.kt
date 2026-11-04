@@ -64,12 +64,11 @@ object GameEngine {
         val st = s.copy(
             board = if (side == Side.LEFT) listOf(placed) + s.board else s.board + placed,
             players = s.players.replace(s.currentIdx, used.copy(hand = hand, score = used.score + pts + bonus)),
-            direction = if (power == Power.REVERSE) -s.direction else s.direction,
             consecutivePasses = 0,
             log = "${me.name} jugó [${tile.a}|${tile.b}] (+$pts)"
         )
         if (hand.isEmpty()) finish(st, "${me.name} se quedó sin fichas")
-        else advance(st, if (power == Power.SKIP) 1 else 0, rng)
+        else advance(st, 0, rng)
     }
 
     fun draw(s: GameState, uid: String, rng: Random = Random): Result<GameState> = runCatching {
@@ -161,7 +160,7 @@ object GameEngine {
         require(oppIdx >= 0 && oppIdx != s.currentIdx) { "Elige un oponente" }
         val opp = s.players[oppIdx]
         require(opp.hand.isNotEmpty()) { "El oponente no tiene fichas" }
-        val theirs = opp.hand.random(rng)
+        val theirs = m.targetTile?.also { require(it in opp.hand) { "El oponente no tiene esa ficha" } } ?: opp.hand.random(rng)
         val players = s.players.mapIndexed { i, p ->
             when (i) {
                 s.currentIdx -> me.copy(hand = me.hand - mine + theirs)

@@ -108,9 +108,7 @@ private fun PoderesTab() {
                     Text(
                         text = when (p) {
                             Power.WILDCARD -> "Te permite colocar tu ficha aunque los números no coincidan con el extremo del tablero."
-                            Power.SKIP -> "Colocas tu ficha e inmediatamente el siguiente jugador pierde su turno."
-                            Power.SWAP -> "Eliges tu ficha, tocas la tarjeta de un oponente y robas una ficha al azar de su mano a cambio de la tuya."
-                            Power.REVERSE -> "Colocas tu ficha y el orden de los turnos cambia de dirección."
+                            Power.SWAP -> "Eliges tu ficha, ves las fichas de tu oponente y escoges exactamente cuál ficha del oponente deseas intercambiar por la tuya."
                         },
                         style = MaterialTheme.typography.bodyMedium
                     )

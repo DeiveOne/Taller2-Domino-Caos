@@ -43,8 +43,8 @@ private fun Half(value: Int, cell: Dp, dotColor: Color) {
 
 @Composable
 fun DominoTile(
-    tile: Tile, modifier: Modifier = Modifier, cell: Dp = 40.dp,
-    selected: Boolean = false, onClick: (() -> Unit)? = null
+    tile: Tile, modifier: Modifier = Modifier, cell: Dp = 34.dp,
+    selected: Boolean = false, vertical: Boolean = false, onClick: (() -> Unit)? = null
 ) {
     val shape = RoundedCornerShape(8.dp)
 
@@ -53,15 +53,23 @@ fun DominoTile(
     val dotColor = Color(0xFF00E5FF) // Puntos Cyan brillante
     val borderColor = if (selected) Color(0xFFE040FB) else Color.White.copy(alpha = 0.2f)
 
-    Row(
-        modifier = modifier
-            .clip(shape)
-            .background(tileColor)
-            .border(if (selected) 3.dp else 1.dp, borderColor, shape)
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
-    ) {
-        Half(tile.a, cell, dotColor)
-        Box(Modifier.width(1.dp).height(cell).background(Color.White.copy(alpha = 0.2f))) // Línea divisoria
-        Half(tile.b, cell, dotColor)
+    val baseModifier = modifier
+        .clip(shape)
+        .background(tileColor)
+        .border(if (selected) 3.dp else 1.dp, borderColor, shape)
+        .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+
+    if (vertical) {
+        Column(modifier = baseModifier) {
+            Half(tile.a, cell, dotColor)
+            Box(Modifier.width(cell).height(1.dp).background(Color.White.copy(alpha = 0.2f))) // Línea divisoria horizontal
+            Half(tile.b, cell, dotColor)
+        }
+    } else {
+        Row(modifier = baseModifier) {
+            Half(tile.a, cell, dotColor)
+            Box(Modifier.width(1.dp).height(cell).background(Color.White.copy(alpha = 0.2f))) // Línea divisoria vertical
+            Half(tile.b, cell, dotColor)
+        }
     }
 }

@@ -25,9 +25,7 @@ fun PowerBar(me: PlayerState, selected: Power?, enabled: Boolean, onSelect: (Pow
             // Asignación de Emojis a los poderes
             val emoji = when(p) {
                 Power.WILDCARD -> "🃏"
-                Power.SKIP -> "⏭️"
                 Power.SWAP -> "🔀"
-                Power.REVERSE -> "🔄"
             }
 
             FilterChip(

@@ -85,7 +85,7 @@ class GameViewModel(
     }
 
     fun place(side: Side) = act { GameEngine.play(it, myUid, Move(selectedTile, side, selectedPower)) }
-    fun swapWith(uid: String) = act { GameEngine.play(it, myUid, Move(selectedTile, null, Power.SWAP, uid)) }
+    fun swapWith(uid: String, targetTile: Tile? = null) = act { GameEngine.play(it, myUid, Move(selectedTile, null, Power.SWAP, uid, targetTile)) }
     fun draw() = act { GameEngine.draw(it, myUid) }
     fun pass() = act { GameEngine.pass(it, myUid) }
 

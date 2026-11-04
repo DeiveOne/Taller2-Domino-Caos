@@ -13,7 +13,7 @@ enum class Side { LEFT, RIGHT }
 enum class Status { WAITING, PLAYING, FINISHED }
 
 enum class Power(val label: String, val initialUses: Int) {
-    WILDCARD("Comodín", 2), SKIP("Salto", 1), SWAP("Intercambio", 1), REVERSE("Inversión", 1)
+    WILDCARD("Comodín", 1), SWAP("Intercambio", 1)
 }
 
 enum class EventType(val label: String) {
@@ -67,5 +67,6 @@ data class Move(
     val tile: Tile? = null,
     val side: Side? = null,
     val power: Power? = null,
-    val swapTargetUid: String? = null
+    val swapTargetUid: String? = null,
+    val targetTile: Tile? = null
 )

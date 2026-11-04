@@ -54,6 +54,29 @@ class AuthRepository(
         }
     }
 
+    fun observeLeaderboard(limit: Int = 10): Flow<List<UserStats>> = callbackFlow {
+        val reg = db.collection("users")
+            .orderBy("gamesWon", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .limit(limit.toLong())
+            .addSnapshotListener { snap, err ->
+                if (err != null || snap == null) {
+                    trySend(emptyList())
+                } else {
+                    val list = snap.documents.map { doc ->
+                        UserStats(
+                            uid = doc.id,
+                            name = doc.getString("name").orEmpty(),
+                            gamesPlayed = (doc.getLong("gamesPlayed") ?: 0L).toInt(),
+                            gamesWon = (doc.getLong("gamesWon") ?: 0L).toInt(),
+                            totalScore = (doc.getLong("totalScore") ?: 0L).toInt()
+                        )
+                    }
+                    trySend(list)
+                }
+            }
+        awaitClose { reg.remove() }
+    }
+
     suspend fun signIn(email: String, pass: String) {
         auth.signInWithEmailAndPassword(email.trim(), pass).await()
     }

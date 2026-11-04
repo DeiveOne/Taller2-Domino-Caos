@@ -208,6 +208,7 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
 
     var showHelp by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var swapOpponent by remember { mutableStateOf<PlayerState?>(null) }
 
     // Instanciamos el Vibrator nativo de Android de forma segura
     val context = LocalContext.current
@@ -251,7 +252,34 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
         }
     }
 
-    s.activeEvent?.let { Text(AppStrings.activeEvent(it.label, s.eventTurns), color = Color(0xFFE040FB), fontWeight = FontWeight.Bold) }
+    // BANNER DE EVENTO ANIMALIZADO (OPCIÓN 2)
+    androidx.compose.animation.AnimatedVisibility(
+        visible = s.activeEvent != null,
+        enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically() + androidx.compose.animation.expandVertically(),
+        exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically()
+    ) {
+        s.activeEvent?.let { event ->
+            Surface(
+                color = Color(0xFFE040FB).copy(alpha = 0.2f),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFFE040FB)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("⚡", fontSize = 20.sp)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("¡EVENTO DE CAOS ACTIVO!", color = Color(0xFFE040FB), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                        Text(event.label, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                    Text("${s.eventTurns} turnos", color = Color(0xFF00E5FF), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                }
+            }
+        }
+    }
 
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(s.players) { p ->
@@ -260,7 +288,7 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
                 onClick = if (swapMode && p.uid != vm.myUid) {
                     {
                         vibrate(100L)
-                        vm.swapWith(p.uid)
+                        swapOpponent = p
                     }
                 } else null
             )
@@ -278,7 +306,10 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
         fontWeight = FontWeight.Bold
     )
 
-    BoardView(s.board)
+    BoardView(
+        board = s.board,
+        validSides = if (myTurn) vm.validSides(s) else emptyList()
+    )
 
     if (s.log.isNotBlank()) Text(s.log, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.8f))
     if (swapMode) Text("Intercambio: toca la tarjeta de un oponente", color = Color(0xFFE040FB), fontWeight = FontWeight.Bold)
@@ -359,5 +390,52 @@ private fun GameView(room: Room, s: GameState, vm: GameViewModel, onExit: () -> 
 
     if (showSettings) {
         SettingsDialog(onDismiss = { showSettings = false })
+    }
+
+    if (swapOpponent != null) {
+        val targetOpp = swapOpponent!!
+        AlertDialog(
+            onDismissRequest = { swapOpponent = null },
+            containerColor = Color(0xFF1E0A38),
+            titleContentColor = Color.White,
+            textContentColor = Color.White,
+            title = {
+                Text(
+                    text = "🔀 Fichas de ${targetOpp.name}",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF00E5FF)
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Selecciona la ficha de ${targetOpp.name} que deseas recibir:",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 14.sp
+                    )
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        items(targetOpp.hand) { tile ->
+                            DominoTile(
+                                tile = tile,
+                                cell = 36.dp,
+                                onClick = {
+                                    vibrate(100L)
+                                    vm.swapWith(targetOpp.uid, tile)
+                                    swapOpponent = null
+                                }
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { swapOpponent = null }) {
+                    Text(AppStrings.close, color = Color.White.copy(alpha = 0.7f))
+                }
+            }
+        )
     }
 }

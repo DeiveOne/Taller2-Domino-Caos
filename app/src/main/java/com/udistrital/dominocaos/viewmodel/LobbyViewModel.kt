@@ -28,6 +28,10 @@ class LobbyViewModel(
         .catch { emit(null) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    val leaderboard = auth.observeLeaderboard()
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     var loading by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
 

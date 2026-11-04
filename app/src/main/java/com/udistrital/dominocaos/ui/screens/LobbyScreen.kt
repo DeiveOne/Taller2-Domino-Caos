@@ -189,6 +189,70 @@ fun LobbyScreen(onRoom: (String) -> Unit, onSignOut: () -> Unit, vm: LobbyViewMo
                 }
             }
 
+            // TARJETA 3: TABLA DE CLASIFICACIÓN GLOBAL (LEADERBOARD)
+            val leaderboard by vm.leaderboard.collectAsState()
+            var showLeaderboard by remember { mutableStateOf(false) }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                shape = RoundedCornerShape(20.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🏆 TABLA DE CLASIFICACIÓN", color = Color(0xFFFFD54F), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        TextButton(onClick = { showLeaderboard = !showLeaderboard }) {
+                            Text(if (showLeaderboard) "Ocultar" else "Ver Top 10", color = Color(0xFF00E5FF))
+                        }
+                    }
+
+                    if (showLeaderboard) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        if (leaderboard.isEmpty()) {
+                            Text("Aún no hay partidas registradas en el ranking.", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                leaderboard.forEachIndexed { index, player ->
+                                    val medal = when (index) {
+                                        0 -> "🥇"
+                                        1 -> "🥈"
+                                        2 -> "🥉"
+                                        else -> "#${index + 1}"
+                                    }
+                                    Surface(
+                                        color = if (player.uid == vm.currentUser?.uid) Color(0xFFE040FB).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.05f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Text(medal, fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 14.sp)
+                                                Text(player.name.ifBlank { "Jugador" }, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                            }
+                                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                                Text("🏆 ${player.gamesWon} vic", color = Color(0xFFFFD54F), fontSize = 13.sp)
+                                                Text("⭐ ${player.totalScore} pts", color = Color(0xFF00E5FF), fontSize = 13.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Mostrar Errores
             vm.error?.let {
                 Text(text = it, color = Color(0xFFFF5252), textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 16.dp))
