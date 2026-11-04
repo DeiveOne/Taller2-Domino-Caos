@@ -56,19 +56,27 @@ class RoomRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIn
     /** Revancha rápida al finalizar la partida. */
     suspend fun rematch(code: String, uid: String) = start(code, uid)
 
-    suspend fun mutate(code: String, f: (GameState) -> Result<GameState>) = transact(code) { room ->
-        val g = f(checkNotNull(room.state) { "La partida no ha iniciado" }).getOrThrow()
-        if (g.status == Status.FINISHED && room.state.status != Status.FINISHED) {
-            updateStats(g)
+    suspend fun mutate(code: String, f: (GameState) -> Result<GameState>) {
+        var finishedGame: GameState? = null
+        transact(code) { room ->
+            val g = f(checkNotNull(room.state) { "La partida no ha iniciado" }).getOrThrow()
+            if (g.status == Status.FINISHED && room.state.status != Status.FINISHED) {
+                finishedGame = g
+            }
+            mapOf("status" to g.status.name, "state" to GameJson.encode(g))
         }
-        mapOf("status" to g.status.name, "state" to GameJson.encode(g))
+        finishedGame?.let { updateStats(it) }
     }
 
-    private fun updateStats(g: GameState) {
-        g.players.forEach { p ->
-            val ref = db.collection("users").document(p.uid)
-            db.runTransaction { tx ->
+    private suspend fun updateStats(g: GameState) {
+        db.runTransaction { tx ->
+            val reads = g.players.map { p ->
+                val ref = db.collection("users").document(p.uid)
                 val snap = tx.get(ref)
+                p to snap
+            }
+            reads.forEach { (p, snap) ->
+                val ref = db.collection("users").document(p.uid)
                 val currentPlayed = snap.getLong("gamesPlayed") ?: 0L
                 val currentWon = snap.getLong("gamesWon") ?: 0L
                 val currentScore = snap.getLong("totalScore") ?: 0L
@@ -83,17 +91,25 @@ class RoomRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIn
                     ),
                     SetOptions.merge()
                 )
-                null
             }
-        }
+            null
+        }.await()
     }
 
-    suspend fun leave(code: String, uid: String) = transact(code) { room ->
-        when (room.status) {
-            Status.WAITING -> mapOf("lobby" to room.lobby.filter { it.uid != uid }.map { it.toMap() })
-            Status.PLAYING -> GameEngine.abandon(room.state!!, uid).let { mapOf("status" to it.status.name, "state" to GameJson.encode(it)) }
-            Status.FINISHED -> emptyMap()
+    suspend fun leave(code: String, uid: String) {
+        var finishedGame: GameState? = null
+        transact(code) { room ->
+            when (room.status) {
+                Status.WAITING -> mapOf("lobby" to room.lobby.filter { it.uid != uid }.map { it.toMap() })
+                Status.PLAYING -> {
+                    val abandoned = GameEngine.abandon(room.state!!, uid)
+                    finishedGame = abandoned
+                    mapOf("status" to abandoned.status.name, "state" to GameJson.encode(abandoned))
+                }
+                Status.FINISHED -> emptyMap()
+            }
         }
+        finishedGame?.let { updateStats(it) }
     }
 
     private suspend fun transact(code: String, build: (Room) -> Map<String, Any?>) {

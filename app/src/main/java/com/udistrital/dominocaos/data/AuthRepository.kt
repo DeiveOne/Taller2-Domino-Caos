@@ -55,36 +55,54 @@ class AuthRepository(
     }
 
     fun observeLeaderboard(limit: Int = 10): Flow<List<UserStats>> = callbackFlow {
-        val reg = db.collection("users")
-            .orderBy("gamesWon", com.google.firebase.firestore.Query.Direction.DESCENDING)
-            .limit(limit.toLong())
-            .addSnapshotListener { snap, err ->
-                if (err != null || snap == null) {
-                    trySend(emptyList())
-                } else {
-                    val list = snap.documents.map { doc ->
-                        UserStats(
-                            uid = doc.id,
-                            name = doc.getString("name").orEmpty(),
-                            gamesPlayed = (doc.getLong("gamesPlayed") ?: 0L).toInt(),
-                            gamesWon = (doc.getLong("gamesWon") ?: 0L).toInt(),
-                            totalScore = (doc.getLong("totalScore") ?: 0L).toInt()
-                        )
-                    }
-                    trySend(list)
+        val reg = db.collection("users").addSnapshotListener { snap, err ->
+            if (err != null || snap == null) {
+                trySend(emptyList())
+            } else {
+                val list = snap.documents.map { doc ->
+                    UserStats(
+                        uid = doc.id,
+                        name = doc.getString("name").orEmpty(),
+                        gamesPlayed = (doc.getLong("gamesPlayed") ?: 0L).toInt(),
+                        gamesWon = (doc.getLong("gamesWon") ?: 0L).toInt(),
+                        totalScore = (doc.getLong("totalScore") ?: 0L).toInt()
+                    )
                 }
+                .sortedWith(compareByDescending<UserStats> { it.gamesWon }.thenByDescending { it.totalScore })
+                .take(limit)
+                trySend(list)
             }
+        }
         awaitClose { reg.remove() }
     }
 
     suspend fun signIn(email: String, pass: String) {
-        auth.signInWithEmailAndPassword(email.trim(), pass).await()
+        val u = auth.signInWithEmailAndPassword(email.trim(), pass).await().user
+        u?.let { user ->
+            val displayName = user.displayName?.takeIf { it.isNotBlank() } ?: user.email.orEmpty().substringBefore("@")
+            db.collection("users").document(user.uid).set(
+                mapOf("name" to displayName),
+                com.google.firebase.firestore.SetOptions.merge()
+            ).await()
+        }
     }
 
     suspend fun signUp(name: String, email: String, pass: String) {
+        val displayName = name.trim()
         val u = auth.createUserWithEmailAndPassword(email.trim(), pass).await().user
-        u?.updateProfile(UserProfileChangeRequest.Builder().setDisplayName(name.trim()).build())?.await()
+        u?.updateProfile(UserProfileChangeRequest.Builder().setDisplayName(displayName).build())?.await()
         u?.reload()?.await()
+        u?.let { user ->
+            db.collection("users").document(user.uid).set(
+                mapOf(
+                    "name" to displayName,
+                    "gamesPlayed" to 0,
+                    "gamesWon" to 0,
+                    "totalScore" to 0
+                ),
+                com.google.firebase.firestore.SetOptions.merge()
+            ).await()
+        }
     }
 
     fun signOut() = auth.signOut()
